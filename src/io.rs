@@ -1,19 +1,14 @@
-//! JSONL mechanism layer — holds two FCIS bands:
+//! JSONL mechanism layer:
 //!
-//! - **`run_kit`** atoms ([`append_line`], [`read_all`], [`events_file`]):
-//!   vocabulary-free, generic, direct-call JSONL helpers. No capability seam,
-//!   no semantic types. These match the doctrine's run-kit shape (open-input,
-//!   direct-call, no trait dispatch).
-//! - **`effect_tool`** adapter ([`FileStore`]): a concrete **filesystem**
-//!   mechanism adapter that implements the [`EventStore`](crate::EventStore)
-//!   port. The doctrine classifies a filesystem adapter dispatched through a
-//!   capability seam as `effect_tool`, not `run_kit`.
-//! - **`run_kit`**/local adapter ([`InMemoryStore`]): the no-mechanism buffer
-//!   backend (a `Vec`). No external mechanism, so it is not `effect_tool`; it
-//!   is the substitution/test-double backend.
+//! - **Helpers** ([`append_line`], [`read_all`], [`events_file`]):
+//!   vocabulary-free, generic, direct-call JSONL primitives. No semantic types.
+//! - **[`FileStore`]**: a concrete **filesystem** backend that implements the
+//!   [`EventStore`](crate::EventStore) port.
+//! - **[`InMemoryStore`]**: the no-mechanism buffer backend (a `Vec`), useful as
+//!   a test double.
 //!
-//! The atoms and the adapter types share one module because the adapters are
-//! thin wrappers over the atoms; the role split is documented per-item.
+//! The helpers and the backend types share one module because the backends are
+//! thin wrappers over the helpers.
 
 use std::path::{Path, PathBuf};
 
@@ -135,10 +130,8 @@ pub fn events_file(store_dir: &Path) -> PathBuf {
 
 /// A file-backed JSONB-line store: owns one `events.jsonl` path.
 ///
-/// FCIS `effect_tool`: a concrete **filesystem** mechanism adapter dispatched
-/// through the [`EventStore`](crate::EventStore) port. (A generic open-input
-/// helper with no capability seam would be `run_kit`; because callers reach the
-/// filesystem through the port, this is the effect adapter.) The
+/// A concrete **filesystem** backend: persistence is a single `.jsonl` file
+/// reached through the [`EventStore`](crate::EventStore) port. The
 /// `impl EventStore` lives in this module.
 #[derive(Debug, Clone)]
 pub struct FileStore {
@@ -161,9 +154,8 @@ impl FileStore {
 
 /// An in-memory store: owns a buffer of records. No persistence.
 ///
-/// FCIS `run_kit`/local: no external mechanism (a `Vec`), so it is not
-/// `effect_tool`. It is the no-op substitution/test-double backend. The
-/// `impl EventStore` lives in this module.
+/// The in-memory buffer backend (a `Vec`) — the no-op substitution/test-double
+/// backend. The `impl EventStore` lives in this module.
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryStore {
     /// The record buffer. `pub(crate)` so this module's `EventStore` impl can
@@ -179,9 +171,9 @@ impl InMemoryStore {
     }
 }
 
-// Adapter port impls live WITH the adapter (the doctrine's `adapter -> port`
-// direction): each effect_tool/run_kit adapter imports the port and implements
-// it, so the wiring is owned by the mechanism, never by the contract module.
+// Backend port impls live WITH the backend: each backend imports the port and
+// implements it, so the wiring is owned by the mechanism, never by the contract
+// module.
 
 impl crate::port::EventStore for FileStore {
     fn read_records(&self) -> Result<Vec<crate::vocabulary::EventRecord>, crate::port::StoreError> {

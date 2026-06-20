@@ -1,4 +1,4 @@
-//! FCIS `utils` — axisless, deterministic atoms. No business types.
+//! Deterministic atoms (FNV-1a digest, JSONL line framing). No business types.
 //!
 //! Two atoms: a stable content digest (FNV-1a 64-bit, the same scheme the
 //! source project uses — fast, dependency-free, deterministic across machines)

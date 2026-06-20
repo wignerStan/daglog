@@ -32,32 +32,25 @@
 //! It **is not**: a database, an indexed query engine, or a network protocol.
 //! For heavy read access, project the stream into whatever index you need.
 //!
-//! ## FCIS module layout
+//! ## Layout
 //!
-//! The crate keeps the FCIS layering at the module level so the ownership seams
-//! are explicit and testable, even though this is a single library crate (not a
-//! monorepo):
+//! The crate separates the pure invariants from the storage mechanism:
 //!
-//! - [`utils`] — axisless, deterministic atoms (FNV-1a digest, JSONL line
-//!   framing). No business types.
-//! - [`vocabulary`] (`meaning_seed`) — the shared record types: [`EventId`],
+//! - [`vocabulary`] — the shared record types: [`EventId`],
 //!   [`vocabulary::Hash`], [`EventRecord`], and their canonical-identity hash
 //!   material.
-//! - [`validation`] (`meaning_core`) — the pure invariants: hash-chain
-//!   verification, parent-DAG dangling-reference + cycle detection. Effect-free:
-//!   it imports nothing from the port or the adapters.
-//! - [`port`] — the local same-axis capability port [`EventStore`] +
-//!   [`StoreError`], the contract adapters implement. (daglog is single-axis,
-//!   so this is a local port, not an `axis_link`.)
-//! - [`io`] — `run_kit` JSONL atoms ([`events_file`] etc.) + the
-//!   [`FileStore`] `effect_tool` filesystem adapter + the [`InMemoryStore`]
-//!   `run_kit`/local buffer backend.
-//! - [`pg`] (`effect_tool`, `pg` feature) — a `PostgreSQL` JSONB database
-//!   adapter ([`PgStore`]); zero-network unless the `pg` feature is enabled.
-//! - [`EventLog`] (`use_flow`) — the high-level store: open/append/replay,
-//!   generic over the [`EventStore`] port. Owns the error union that routes
-//!   store failures ([`LogError::Store`]) vs invariant breaches
-//!   ([`LogError::Validation`]) so `meaning_core` stays effect-free.
+//! - [`validation`] — the pure invariants: hash-chain verification, parent-DAG
+//!   dangling-reference + cycle detection. Effect-free: it imports nothing
+//!   from the port or the adapters.
+//! - [`port`] — the [`EventStore`] trait + [`StoreError`], the contract
+//!   backends implement.
+//! - [`io`] — JSONL file atoms ([`events_file`] etc.), the [`FileStore`]
+//!   filesystem backend, and the [`InMemoryStore`] buffer backend.
+//! - [`pg`] (`pg` feature) — a `PostgreSQL` JSONB backend ([`PgStore`]);
+//!   zero-network unless the `pg` feature is enabled.
+//! - [`EventLog`] — the high-level store: open/append/replay, generic over the
+//!   [`EventStore`] port. Owns the error union that routes store failures
+//!   ([`LogError::Store`]) vs invariant breaches ([`LogError::Validation`]).
 //!
 //! [JSONL]: https://jsonlines.org
 

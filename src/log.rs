@@ -1,18 +1,14 @@
-//! FCIS `use_flow` — the high-level store.
+//! The high-level store.
 //!
-//! The `use_flow` depends on the [`EventStore`] **local capability port** (a
-//! same-axis trait, not an `axis_link`), not on a concrete backend. Concrete
-//! adapters live in [`crate::io`] (`FileStore`, `InMemoryStore`) and
+//! [`EventLog`] depends on the [`EventStore`] port, not on a concrete backend.
+//! Backends live in [`crate::io`] (`FileStore`, `InMemoryStore`) and
 //! [`crate::pg`] (`PgStore`, under the `pg` feature) — they own the mechanism
 //! (a path / a buffer / a database) and each implements the port in its own
-//! module. [`EventLog`] wires the port to the domain: it runs the append
-//! protocol (assign stream links + reject dangling parents) and the
-//! replay/validate surface, delegating all persistence to the injected store.
-//!
-//! This keeps the store a *required capability* the consumer depends on rather
-//! than an owned mechanism a struct method surface hides. A caller can supply
-//! any `EventStore` (a test fake, a remote store, an encrypted backend) without
-//! the `use_flow` knowing how bytes land.
+//! module. [`EventLog`] runs the append protocol (assign stream links + reject
+//! dangling parents) and the replay/validate surface, delegating all
+//! persistence to the injected store. A caller can supply any `EventStore` (a
+//! test fake, a remote store, an encrypted backend) and the store never learns
+//! how bytes land.
 
 use std::path::Path;
 
@@ -88,9 +84,9 @@ pub enum LogError {
     #[error("append rejected: parent `{0}` is not in the log")]
     UnknownParent(String),
     /// A pure invariant breach surfaced by [`EventLog::validate`] (the
-    /// `meaning_core` check over the replayed records). Kept as an arm here, on
-    /// the `use_flow` surface, so the semantic core stays effect-free and never
-    /// imports the store/error taxonomy.
+    /// hash-chain / parent-DAG check over the replayed records). Kept as an arm
+    /// on the store error so the pure validation module never imports the
+    /// store/error taxonomy.
     #[error(transparent)]
     Validation(#[from] crate::validation::ValidationError),
 }
@@ -168,7 +164,7 @@ impl<S: EventStore> EventLog<S> {
     /// DAG + acyclicity). Replays first, then delegates the pure checks to
     /// [`validate_log`](crate::validate_log).
     ///
-    /// The error union lives on the `use_flow` surface ([`LogError`]) so the
+    /// The error union lives on the store surface ([`LogError`]) so the
     /// semantic core ([`validation`](crate::validation)) stays effect-free: a
     /// store read failure surfaces as [`LogError::Store`], an invariant breach
     /// as [`LogError::Validation`].
@@ -343,7 +339,7 @@ mod tests {
 
     #[test]
     fn custom_store_adapter_plugs_into_eventlog() {
-        // A hand-rolled EventStore proves the port is real: the use_flow works
+        // A hand-rolled EventStore proves the port is real: the store works
         // over any adapter, not just the built-in file/in-memory ones.
         use std::cell::RefCell;
         struct CountingStore(RefCell<Vec<EventRecord>>);

@@ -1,10 +1,7 @@
-//! FCIS `effect_tool` (pg backend) — a `PostgreSQL` JSONB store adapter.
+//! The `PostgreSQL` JSONB backend (requires the `pg` feature).
 //!
-//! `PgStore` is the concrete **database** mechanism adapter for the
-//! [`EventStore`](crate::EventStore) port when the log lives in Postgres. The
-//! doctrine classifies a database adapter dispatched through a capability seam
-//! as `effect_tool` (it wraps a concrete external mechanism, leaks backend
-//! choice + failure taxonomy, and the caller reaches it through the port). Each
+//! `PgStore` is the concrete **database** backend for the
+//! [`EventStore`](crate::EventStore) port when the log lives in Postgres. Each
 //! [`EventRecord`](crate::EventRecord) is one row:
 //!
 //! ```sql
@@ -199,8 +196,8 @@ impl From<sqlx::Error> for PgStoreError {
     }
 }
 
-// Adapter port impl — lives WITH the adapter (the doctrine's `adapter -> port`
-// direction). The `pg` effect_tool imports the port and implements it; the
+// Backend port impl — lives WITH the backend (the `adapter -> port`
+// direction: the backend imports the port and implements it; the
 // wiring is owned by the mechanism, not by the contract module.
 impl crate::port::EventStore for PgStore {
     fn read_records(&self) -> Result<Vec<EventRecord>, crate::port::StoreError> {

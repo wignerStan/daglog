@@ -1,4 +1,4 @@
-//! FCIS `meaning_seed` — the shared record vocabulary: identifiers, hashes,
+//! The shared record vocabulary: identifiers, hashes, and the [`EventRecord`]
 //! and the [`EventRecord`] itself. Pure data, no logic (logic is
 //! [`crate::validation`] and [`crate::log`]).
 

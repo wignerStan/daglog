@@ -1,4 +1,4 @@
-//! FCIS `meaning_core` — the pure invariants over a replayed event stream.
+//! The pure invariants over a replayed event stream.
 //! Pure: takes `&[EventRecord]`, returns `Result`. No I/O.
 //!
 //! Three checks:

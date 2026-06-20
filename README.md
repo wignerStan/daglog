@@ -96,25 +96,24 @@ log.validate().unwrap(); // hash-chain + parent-DAG + acyclicity
 For high-throughput async use, drive the `sqlx` pool from your own runtime via a
 custom `EventStore` adapter instead of the per-call borrowed runtime.
 
-## FCIS module layout
+## Module layout
 
-The crate keeps an explicit ownership layering (FCIS) at the module level so the
-seams are testable, even though it ships as one library crate:
+The crate separates the pure invariants from the storage mechanism, even though
+it ships as one library:
 
-| Module | FCIS role | Responsibility |
-|---|---|---|
-| [`utils`] | utils | deterministic atoms: FNV-1a digest, JSONL line framing |
-| [`vocabulary`] | meaning_seed | shared record types: `EventId`, `Hash`, `EventRecord`, `EventBuilder` |
-| [`validation`] | meaning_core | pure invariants: hash-chain, parent-DAG, cycle detection (effect-free) |
-| [`port`] | local capability port | the `EventStore` trait + `StoreError`; imports no adapter |
-| [`io`] | run_kit + effect_tool | JSONL atoms (run_kit) + `FileStore` filesystem adapter (effect_tool) + `InMemoryStore` buffer backend (run_kit) |
-| [`pg`] *(feature)* | effect_tool | Postgres JSONB database adapter (`PgStore`); zero-network unless `pg` is on |
-| [`log`] | use_flow | the high-level `EventLog<S: EventStore>`: open/append/replay/validate |
+| Module | Responsibility |
+|---|---|
+| [`utils`] | deterministic atoms: FNV-1a digest, JSONL line framing |
+| [`vocabulary`] | shared record types: `EventId`, `Hash`, `EventRecord`, `EventBuilder` |
+| [`validation`] | pure invariants: hash-chain, parent-DAG, cycle detection (effect-free) |
+| [`port`] | the `EventStore` trait + `StoreError`; imports no backend |
+| [`io`] | JSONL helpers + `FileStore` filesystem backend + `InMemoryStore` buffer backend |
+| [`pg`] *(feature)* | Postgres JSONB backend (`PgStore`); zero-network unless `pg` is on |
+| [`log`] | the high-level `EventLog<S: EventStore>`: open/append/replay/validate |
 
-The store is a **local same-axis capability port** (`trait EventStore`), not a
-concrete struct: `EventLog` depends on the port, and any adapter (file,
-in-memory, a test
-fake, a remote store) plugs in via `EventLog::new(your_store)`.
+The store is a **trait** (`trait EventStore`), not a concrete struct: `EventLog`
+depends on the port, and any backend (file, in-memory, a test fake, a remote
+store) plugs in via `EventLog::new(your_store)`.
 
 [`utils`]: https://docs.rs/daglog/latest/daglog/utils
 [`vocabulary`]: https://docs.rs/daglog/latest/daglog/vocabulary
