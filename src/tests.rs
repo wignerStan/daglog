@@ -1,7 +1,7 @@
 //! Integration tests covering the full append → replay → validate cycle,
 //! including the branch/merge git-style workflow.
 
-use crate::{validate_log, EventBuilder, EventId, EventLog};
+use crate::{EventBuilder, EventId, EventLog, validate_log};
 
 #[test]
 fn doc_example_compiles_and_runs() {

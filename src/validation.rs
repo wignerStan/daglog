@@ -40,7 +40,9 @@ pub enum ValidationError {
         actual: Hash,
     },
     /// A record's stream-predecessor pointer does not match the previous line.
-    #[error("record `{id}` breaks the stream chain: expected prev {expected_prev:?}, found {actual_prev:?}")]
+    #[error(
+        "record `{id}` breaks the stream chain: expected prev {expected_prev:?}, found {actual_prev:?}"
+    )]
     StreamChain {
         /// The id of the offending record.
         id: String,

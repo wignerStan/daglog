@@ -48,6 +48,8 @@
 //!   the contract every store adapter implements.
 //! - [`io`] (`run_kit`) — direct-call JSONL read/append atoms + the concrete
 //!   adapter types ([`FileStore`], [`InMemoryStore`]).
+//! - [`pg`] (`run_kit`, `pg` feature) — a `PostgreSQL` JSONB adapter
+//!   ([`PgStore`]); zero-network unless the `pg` feature is enabled.
 //! - [`EventLog`] (`use_flow`) — the high-level store: open/append/replay,
 //!   generic over the [`EventStore`] port.
 //!
@@ -74,11 +76,19 @@ pub mod utils;
 pub mod validation;
 pub mod vocabulary;
 
-pub use io::{events_file, FileStore, InMemoryStore, JsonlError};
+#[cfg(feature = "pg")]
+pub mod pg;
+
+pub use io::{FileStore, InMemoryStore, JsonlError, events_file};
+#[cfg(feature = "pg")]
+pub use log::PgLog;
 pub use log::{EventLog, FileLog, LogError, MemoryLog, Replay};
 pub use port::{EventStore, StoreError};
-pub use validation::{validate_log, ValidationError};
+pub use validation::{ValidationError, validate_log};
 pub use vocabulary::{BuildError, EventBuilder, EventId, EventRecord, Hash};
+
+#[cfg(feature = "pg")]
+pub use pg::{PgStore, PgStoreError};
 
 mod log;
 

@@ -1,8 +1,8 @@
 [package]
 name = "jsonldag"
 version = "0.1.0"
-edition = "2021"
-rust-version = "1.85"
+edition = "2024"
+rust-version = "1.85"  # floor for the core crate; the optional `pg` feature needs a newer toolchain (see rust-toolchain.toml)
 license = "MIT OR Apache-2.0"
 description = "Append-only JSONL event log with a verified hash-chain + branch/merge DAG — git-style forks and merges over a single newline-delimited JSON stream."
 repository = "https://github.com/wignerStan/jsonldag"
@@ -20,12 +20,20 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 uuid = { version = "1", features = ["v4"], optional = true }
+# `pg` feature: PostgreSQL JSONB backend store. Uses sqlx with the `postgres`
+# + `runtime-tokio-rustls` backend; gated behind the `pg` feature so the crate
+# stays zero-network by default.
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "json"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 
 [features]
 default = ["uuid"]
 # `uuid` enables EventId::new() (random v4 id generation). Disable it for a
 # no-randomness build where the caller supplies ids.
 uuid = ["dep:uuid"]
+# `pg` enables the PostgreSQL JSONB backend store ([`PgStore`]). Off by default
+# — the crate is zero-network unless a caller opts in. Requires tokio runtime.
+pg = ["dep:sqlx", "dep:tokio"]
 
 [dev-dependencies]
 tempfile = "3"

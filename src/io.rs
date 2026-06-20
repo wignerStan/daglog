@@ -5,8 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 /// An I/O error from the JSONL atoms, with the path + operation context.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

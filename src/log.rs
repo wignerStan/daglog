@@ -44,6 +44,9 @@ pub struct EventLog<S: EventStore> {
 pub type FileLog = EventLog<FileStore>;
 /// The default in-memory log: `EventLog<InMemoryStore>`.
 pub type MemoryLog = EventLog<InMemoryStore>;
+/// The Postgres-backed log (requires the `pg` feature): `EventLog<PgStore>`.
+#[cfg(feature = "pg")]
+pub type PgLog = EventLog<crate::pg::PgStore>;
 
 /// The replayed contents of a log: every record in stream order plus the
 /// current tip (the last record's id + hash).

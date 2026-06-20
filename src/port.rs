@@ -81,3 +81,24 @@ impl EventStore for InMemoryStore {
         Ok(())
     }
 }
+
+// `pg` backend: the PgStore adapter (run_kit) implements the same port. Gated
+// behind the `pg` feature so the crate stays zero-network by default. PgStore's
+// own errors map to StoreError::Other (the non-JSONL backend arm).
+#[cfg(feature = "pg")]
+impl EventStore for crate::pg::PgStore {
+    fn read_records(&self) -> Result<Vec<EventRecord>, StoreError> {
+        Ok(Self::read_records(self)?)
+    }
+
+    fn append_record(&mut self, record: &EventRecord) -> Result<(), StoreError> {
+        Ok(Self::append_record(self, record)?)
+    }
+}
+
+#[cfg(feature = "pg")]
+impl From<crate::pg::PgStoreError> for StoreError {
+    fn from(e: crate::pg::PgStoreError) -> Self {
+        Self::Other(e.to_string())
+    }
+}

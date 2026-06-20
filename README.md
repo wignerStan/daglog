@@ -68,6 +68,33 @@ For heavy read access, project the stream into whatever index you need
 - `uuid` (default) — enables `EventId::new()` random v4 id generation. Disable
   it (`--no-default-features`) for a no-randomness build where the caller
   supplies every id.
+- `pg` — enables the PostgreSQL JSONB backend store (`PgStore`). Off by default
+  — the crate is zero-network unless a caller opts in. Requires the `tokio`
+  runtime (each sync call borrows a short-lived runtime to drive the async
+  `sqlx` query).
+
+## PostgreSQL backend (`pg` feature)
+
+When the log lives in Postgres, swap the store for `PgStore`. Each record is one
+row `(seq BIGSERIAL, record JSONB)`; `seq` captures stream order so replay
+reconstructs the same hash-chain the file backend does.
+
+```rust
+# #[cfg(feature = "pg")] {
+# use jsonldag::{EventBuilder, EventLog, PgStore};
+# use serde_json::json;
+// 1. provision the table once (idempotent DDL):
+let store = PgStore::new("postgres://user:pass@host/db", "events").unwrap();
+store.ensure_table().unwrap();
+// 2. open a log over it:
+let mut log = EventLog::new(store);
+log.append(EventBuilder::new(json!("base")).build().unwrap()).unwrap();
+log.validate().unwrap(); // hash-chain + parent-DAG + acyclicity
+# }
+```
+
+For high-throughput async use, drive the `sqlx` pool from your own runtime via a
+custom `EventStore` adapter instead of the per-call borrowed runtime.
 
 ## FCIS module layout
 
@@ -81,6 +108,7 @@ seams are testable, even though it ships as one library crate:
 | [`validation`] | meaning_core | pure invariants: hash-chain, parent-DAG, cycle detection |
 | [`port`] | meaning_core | the required-capability port `EventStore` + `StoreError` |
 | [`io`] | run_kit | direct-call JSONL atoms + concrete adapter types (`FileStore`, `InMemoryStore`) |
+| [`pg`] *(feature)* | run_kit | Postgres JSONB adapter (`PgStore`); zero-network unless the `pg` feature is on |
 | [`log`] | use_flow | the high-level `EventLog<S: EventStore>`: open/append/replay/validate |
 
 The store is a **required-capability port** (`trait EventStore`), not a concrete
@@ -92,6 +120,7 @@ fake, a remote store) plugs in via `EventLog::new(your_store)`.
 [`validation`]: https://docs.rs/jsonldag/latest/jsonldag/validation
 [`port`]: https://docs.rs/jsonldag/latest/jsonldag/port
 [`io`]: https://docs.rs/jsonldag/latest/jsonldag/io
+[`pg`]: https://docs.rs/jsonldag/latest/jsonldag/pg
 [`log`]: https://docs.rs/jsonldag/latest/jsonldag/log
 
 ## License
