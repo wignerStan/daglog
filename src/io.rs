@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn missing_file_reads_empty() {
-        let path = Path::new("/tmp/jsonldag-nonexistent-xyz/events.jsonl");
+        let path = Path::new("/tmp/daglog-nonexistent-xyz/events.jsonl");
         let rows: Vec<serde_json::Value> = read_all(&path).unwrap();
         assert!(rows.is_empty());
     }

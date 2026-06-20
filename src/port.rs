@@ -1,7 +1,7 @@
 //! The required-capability port: the [`EventStore`] trait + [`StoreError`].
 //!
 //! This is the local contract the `use_flow` ([`crate::EventLog`]) depends on.
-//! In FCIS terms it is a **same-axis local port**, not an `axis_link`: jsonldag
+//! In FCIS terms it is a **same-axis local port**, not an `axis_link`: daglog
 //! is a single-axis library, and the doctrine says same-axis capability seams
 //! stay as local traits inside the owner capsule rather than being elevated to
 //! `axis_link(required_port)` (which exists for *cross-axis* plugin seams).

@@ -1,12 +1,12 @@
 [package]
-name = "jsonldag"
+name = "daglog"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"  # floor for the core crate; the optional `pg` feature needs a newer toolchain (see rust-toolchain.toml)
 license = "MIT OR Apache-2.0"
 description = "Append-only JSONL event log with a verified hash-chain + branch/merge DAG — git-style forks and merges over a single newline-delimited JSON stream."
-repository = "https://github.com/wignerStan/jsonldag"
-documentation = "https://docs.rs/jsonldag"
+repository = "https://github.com/wignerStan/daglog"
+documentation = "https://docs.rs/daglog"
 readme = "README.md"
 keywords = ["jsonl", "dag", "event-sourcing", "append-only", "hash-chain"]
 categories = ["data-structures", "database-implementations", "filesystem"]

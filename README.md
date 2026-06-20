@@ -1,4 +1,4 @@
-# jsonldag
+# daglog
 
 An append-only **JSONL** event log with a verified hash-chain **and** a
 branch/merge DAG — git-style forks and merges over a single
@@ -18,7 +18,7 @@ database, no daemon, no lock server.
 ## Example
 
 ```rust
-use jsonldag::{EventBuilder, EventLog, validate_log};
+use daglog::{EventBuilder, EventLog, validate_log};
 use serde_json::json;
 
 let mut log = EventLog::in_memory();
@@ -35,7 +35,7 @@ validate_log(&log.replay().unwrap().records).unwrap();
 Persist to disk instead by opening over a directory:
 
 ```rust
-use jsonldag::EventLog;
+use daglog::EventLog;
 let mut log = EventLog::open(".myapp/events"); // <dir>/events.jsonl
 ```
 
@@ -81,7 +81,7 @@ reconstructs the same hash-chain the file backend does.
 
 ```rust
 # #[cfg(feature = "pg")] {
-# use jsonldag::{EventBuilder, EventLog, PgStore};
+# use daglog::{EventBuilder, EventLog, PgStore};
 # use serde_json::json;
 // 1. provision the table once (idempotent DDL):
 let store = PgStore::new("postgres://user:pass@host/db", "events").unwrap();
@@ -116,13 +116,13 @@ concrete struct: `EventLog` depends on the port, and any adapter (file,
 in-memory, a test
 fake, a remote store) plugs in via `EventLog::new(your_store)`.
 
-[`utils`]: https://docs.rs/jsonldag/latest/jsonldag/utils
-[`vocabulary`]: https://docs.rs/jsonldag/latest/jsonldag/vocabulary
-[`validation`]: https://docs.rs/jsonldag/latest/jsonldag/validation
-[`port`]: https://docs.rs/jsonldag/latest/jsonldag/port
-[`io`]: https://docs.rs/jsonldag/latest/jsonldag/io
-[`pg`]: https://docs.rs/jsonldag/latest/jsonldag/pg
-[`log`]: https://docs.rs/jsonldag/latest/jsonldag/log
+[`utils`]: https://docs.rs/daglog/latest/daglog/utils
+[`vocabulary`]: https://docs.rs/daglog/latest/daglog/vocabulary
+[`validation`]: https://docs.rs/daglog/latest/daglog/validation
+[`port`]: https://docs.rs/daglog/latest/daglog/port
+[`io`]: https://docs.rs/daglog/latest/daglog/io
+[`pg`]: https://docs.rs/daglog/latest/daglog/pg
+[`log`]: https://docs.rs/daglog/latest/daglog/log
 
 ## License
 

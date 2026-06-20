@@ -16,7 +16,7 @@ pub enum BuildError {
 
 /// Schema version stamped on every record. Bumped when the wire shape changes;
 /// [`crate::validation`] rejects a stream whose version it does not recognize.
-pub const RECORD_SCHEMA_VERSION: &str = "jsonldag.record.v1";
+pub const RECORD_SCHEMA_VERSION: &str = "daglog.record.v1";
 
 /// A record identifier. Opaque to the DAG (any unique string); the library
 /// supplies random v4 UUIDs via [`EventId::new`] when the `uuid` feature is on.
@@ -183,7 +183,7 @@ impl EventRecord {
 /// and parents.
 ///
 /// ```
-/// # use jsonldag::{EventBuilder, EventId};
+/// # use daglog::{EventBuilder, EventId};
 /// let rec = EventBuilder::new(serde_json::json!({"kind":"open"}))
 ///     .id(EventId::from("evt-1"))
 ///     .parent(EventId::from("evt-0"))

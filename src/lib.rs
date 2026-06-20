@@ -1,4 +1,4 @@
-//! # jsonldag
+//! # daglog
 //!
 //! An append-only [JSONL] event log with a verified hash-chain **and** a
 //! branch/merge DAG — git-style forks and merges over a single
@@ -12,7 +12,7 @@
 //!   one event can merge several branches the way a git merge commit does.
 //!
 //! ```
-//! # use jsonldag::{EventBuilder, EventLog, validate_log};
+//! # use daglog::{EventBuilder, EventLog, validate_log};
 //! # use serde_json::json;
 //! let mut log = EventLog::in_memory();
 //! let a = log.append(EventBuilder::new(json!("base")).build().unwrap()).unwrap();
@@ -47,7 +47,7 @@
 //!   verification, parent-DAG dangling-reference + cycle detection. Effect-free:
 //!   it imports nothing from the port or the adapters.
 //! - [`port`] — the local same-axis capability port [`EventStore`] +
-//!   [`StoreError`], the contract adapters implement. (jsonldag is single-axis,
+//!   [`StoreError`], the contract adapters implement. (daglog is single-axis,
 //!   so this is a local port, not an `axis_link`.)
 //! - [`io`] — `run_kit` JSONL atoms ([`events_file`] etc.) + the
 //!   [`FileStore`] `effect_tool` filesystem adapter + the [`InMemoryStore`]
