@@ -1,0 +1,136 @@
+# Git Attributes for Rust Project Template
+# https://git-scm.com/docs/gitattributes
+
+# ============================================
+# Text Files
+# ============================================
+
+# Auto detect text files
+* text=auto
+
+# Source code
+*.rs text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Configuration files
+Makefile text eol=lf
+justfile text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.pre-commit-config.yaml text eol=lf
+
+# Docker files
+Dockerfile* text eol=lf
+*.dockerfile text eol=lf
+
+# CI/CD files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# ============================================
+# Binary Files
+# ============================================
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.bz2 binary
+*.7z binary
+*.rar binary
+
+# Executables
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+*.lib binary
+
+# ============================================
+# Language Specific
+# ============================================
+
+# Rust
+*.rs linguist-language=Rust
+Cargo.lock linguist-generated=true
+
+# Documentation
+*.md linguist-documentation
+LICENSE* linguist-license
+
+# ============================================
+# Diff Settings
+# ============================================
+
+# Use better diff for certain file types
+*.rs diff=rust
+*.json diff=json
+*.yaml diff=yaml
+*.toml diff=toml
+
+# ============================================
+# Merge Settings
+# ============================================
+
+# Cargo.lock: use ours to avoid merge conflicts in lockfiles
+Cargo.lock merge=ours text
+
+# ============================================
+# Export Settings
+# ============================================
+
+# Export-ignore for files that shouldn't be in archives
+.gitattributes export-ignore
+.gitignore export-ignore
+.git/ export-ignore
+.github/ export-ignore
+.vscode/ export-ignore
+.idea/ export-ignore
+target/ export-ignore
+coverage/ export-ignore
+*.md export-ignore
+.env export-ignore
+.env.* export-ignore
+
+# ============================================
+# Whitespace Settings
+# ============================================
+
+# Trim trailing whitespace
+*.rs whitespace=trailing-space,space-before-tab,cr-at-eol
+*.toml whitespace=trailing-space,space-before-tab,cr-at-eol
+*.yaml whitespace=trailing-space,space-before-tab,cr-at-eol
+*.json whitespace=trailing-space,space-before-tab,cr-at-eol
+
+# ============================================
+# End-of-Line Settings
+# ============================================
+
+# Force LF for all text files
+* text eol=lf

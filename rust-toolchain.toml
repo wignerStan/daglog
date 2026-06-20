@@ -1,0 +1,4 @@
+# Pin the Rust toolchain for reproducible builds.
+[toolchain]
+channel = "1.85"
+components = ["clippy", "rustfmt", "llvm-tools-preview"]

@@ -1,0 +1,101 @@
+# CI for jsonldag — single-crate publishable library.
+# Adapted from the rust_v1.0_mono template; trimmed to one crate.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  lint:
+    name: Clippy (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lint
+      # The repo's strict [lints] table (clippy::all/pedantic/nursery/perf deny,
+      # unwrap/expect/panic deny in prod, allow-*-in-tests via clippy.toml).
+      - run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: [fmt, lint]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-${{ matrix.os }}
+      # All features (uuid on) AND no-default-features (uuid off) — both must pass.
+      - run: cargo test --all-features
+      - run: cargo build --no-default-features
+      - run: cargo test --doc --all-features
+
+  build:
+    name: Build release
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: build
+      - run: cargo build --release --all-features
+
+  docs:
+    name: Docs
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: docs
+      # -D rustdoc::broken-intra-doc-links is in the [lints] table.
+      - run: cargo doc --no-deps --all-features
+
+  package:
+    name: Package (publish readiness)
+    needs: [build, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: package
+      - run: cargo package --no-verify

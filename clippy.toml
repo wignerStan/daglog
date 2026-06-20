@@ -1,0 +1,6 @@
+# Clippy Configuration
+# https://doc.rust-lang.org/clippy/configuration.html
+
+# Allow expect/unwrap in test code — they produce clearer failure messages than Result propagation
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true

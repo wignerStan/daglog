@@ -1,0 +1,42 @@
+# Nextest configuration
+# Docs: https://nexte.st/book/configuration.html
+#
+# Install: cargo install cargo-nextest
+
+[store]
+dir = "target/nextest"
+
+[profile.default]
+fail-fast = false
+status-level = "skip"
+success-output = "immediate"
+slow-timeout = { period = "60s", terminate-after = 3 }
+
+# Skip tests that use a custom harness not managed by nextest.
+# Uncomment and adjust for your project:
+# [[profile.default.test-skip]]
+# name = "cucumber_bdd"
+# [[profile.default.test-skip]]
+# name = "loom_*"
+
+[profile.default.junit]
+path = "target/nextest/junit.xml"
+report-name = "tests"
+
+# CI profile. Retries are disabled so flaky tests fail as contract violations.
+[profile.ci]
+inherit = "default"
+fail-fast = true
+retries = 0
+slow-timeout = { period = "120s", terminate-after = 2 }
+
+[profile.ci.junit]
+path = "target/nextest/junit.xml"
+report-name = "ci"
+
+# Property test profile: longer timeouts for heavy proptest cases
+[profile.proptest]
+inherit = "default"
+fail-fast = false
+slow-timeout = { period = "300s", terminate-after = 1 }
+test-threads = 2

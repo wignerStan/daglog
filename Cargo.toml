@@ -1,0 +1,78 @@
+[package]
+name = "jsonldag"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Append-only JSONL event log with a verified hash-chain + branch/merge DAG — git-style forks and merges over a single newline-delimited JSON stream."
+repository = "https://github.com/wignerStan/jsonldag"
+documentation = "https://docs.rs/jsonldag"
+readme = "README.md"
+keywords = ["jsonl", "dag", "event-sourcing", "append-only", "hash-chain"]
+categories = ["data-structures", "database-implementations", "filesystem"]
+exclude = ["/.git", "/target", "/target-package"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+uuid = { version = "1", features = ["v4"], optional = true }
+
+[features]
+default = ["uuid"]
+# `uuid` enables EventId::new() (random v4 id generation). Disable it for a
+# no-randomness build where the caller supplies ids.
+uuid = ["dep:uuid"]
+
+[dev-dependencies]
+tempfile = "3"
+
+# ---------------------------------------------------------------------------
+# Lints — centralized clippy/rust rules (stricter set, per repo template)
+# ---------------------------------------------------------------------------
+
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+unused_imports = "warn"
+unused_variables = "warn"
+dead_code = "warn"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+perf = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "warn"
+clone_on_ref_ptr = "deny"
+missing_errors_doc = "deny"
+missing_panics_doc = "deny"
+collapsible_if = "deny"
+uninlined_format_args = "deny"
+redundant_closure_for_method_calls = "deny"
+manual_range_contains = "deny"
+missing_safety_doc = "deny"
+redundant_clone = "deny"
+large_enum_variant = "warn"
+needless_collect = "warn"
+# Casting: the digest math is byte-oriented; intentional where used.
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+# Naming: short names are idiomatic in the digest/byte math.
+similar_names = "allow"
+module_name_repetitions = "allow"
+missing_docs_in_private_items = "allow"
+
+[package.metadata.docs.rs]
+all-features = true
