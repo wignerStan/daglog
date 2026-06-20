@@ -23,7 +23,7 @@ uuid = { version = "1", features = ["v4"], optional = true }
 # `pg` feature: PostgreSQL JSONB backend store. Uses sqlx with the `postgres`
 # + `runtime-tokio-rustls` backend; gated behind the `pg` feature so the crate
 # stays zero-network by default.
-sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "json"], optional = true }
+sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls-ring", "json"], optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 
 [features]

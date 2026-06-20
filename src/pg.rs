@@ -31,6 +31,7 @@
 //! low-friction default.
 
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::AssertSqlSafe;
 
 use crate::vocabulary::EventRecord;
 
@@ -129,7 +130,10 @@ impl PgStore {
             // predecessor links were assigned in that order, so validation
             // matches the file backend exactly.
             let query = format!("SELECT record FROM {} ORDER BY seq", self.table);
-            let rows: Vec<(serde_json::Value,)> = sqlx::query_as(&query).fetch_all(&pool).await?;
+            // Table name is caller-supplied and trusted (cannot be a bind param);
+            // wrap in AssertSqlSafe per sqlx 0.9's dynamic-SQL audit.
+            let rows: Vec<(serde_json::Value,)> =
+                sqlx::query_as(AssertSqlSafe(query.as_str())).fetch_all(&pool).await?;
             rows.into_iter()
                 .map(|(value,)| serde_json_value_to_record(value))
                 .collect()
@@ -147,7 +151,7 @@ impl PgStore {
         block_on(async {
             let pool = self.pool().await?;
             let query = format!("INSERT INTO {} (record) VALUES ($1)", self.table);
-            sqlx::query(&query).bind(value).execute(&pool).await?;
+            sqlx::query(AssertSqlSafe(query.as_str())).bind(value).execute(&pool).await?;
             Ok(())
         })
     }
@@ -161,7 +165,7 @@ impl PgStore {
         let ddl = self.create_table_sql();
         block_on(async {
             let pool = self.pool().await?;
-            sqlx::query(&ddl).execute(&pool).await?;
+            sqlx::query(AssertSqlSafe(ddl.as_str())).execute(&pool).await?;
             Ok(())
         })
     }
