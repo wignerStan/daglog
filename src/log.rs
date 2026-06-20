@@ -1,16 +1,18 @@
 //! FCIS `use_flow` — the high-level store.
 //!
-//! The `use_flow` depends on the [`EventStore`] **capability port** (a trait),
-//! not on a concrete backend. Concrete adapters live in [`crate::io`]
-//! (`FileStore`, `InMemoryStore`) — they own the mechanism (a path / a buffer)
-//! and implement the port. [`EventLog`] wires the port to the domain: it runs
-//! the append protocol (assign stream links + reject dangling parents) and the
+//! The `use_flow` depends on the [`EventStore`] **local capability port** (a
+//! same-axis trait, not an `axis_link`), not on a concrete backend. Concrete
+//! adapters live in [`crate::io`] (`FileStore`, `InMemoryStore`) and
+//! [`crate::pg`] (`PgStore`, under the `pg` feature) — they own the mechanism
+//! (a path / a buffer / a database) and each implements the port in its own
+//! module. [`EventLog`] wires the port to the domain: it runs the append
+//! protocol (assign stream links + reject dangling parents) and the
 //! replay/validate surface, delegating all persistence to the injected store.
 //!
-//! This is the "define a trait, not an impl" seam: the store is a *required
-//! capability* the consumer depends on, not an owned mechanism a struct method
-//! surface hides. A caller can supply any `EventStore` (a test fake, a remote
-//! store, an encrypted backend) without the `use_flow` knowing how bytes land.
+//! This keeps the store a *required capability* the consumer depends on rather
+//! than an owned mechanism a struct method surface hides. A caller can supply
+//! any `EventStore` (a test fake, a remote store, an encrypted backend) without
+//! the `use_flow` knowing how bytes land.
 
 use std::path::Path;
 
@@ -77,7 +79,7 @@ impl Replay {
 /// An error from the store API.
 #[derive(Debug, thiserror::Error)]
 pub enum LogError {
-    /// An I/O or parse failure from the underlying store.
+    /// An I/O or parse failure from the underlying store (effect-layer).
     #[error(transparent)]
     Store(#[from] StoreError),
     /// Appended a record whose parent ids are not all present in the current
@@ -85,6 +87,12 @@ pub enum LogError {
     /// disk.
     #[error("append rejected: parent `{0}` is not in the log")]
     UnknownParent(String),
+    /// A pure invariant breach surfaced by [`EventLog::validate`] (the
+    /// `meaning_core` check over the replayed records). Kept as an arm here, on
+    /// the `use_flow` surface, so the semantic core stays effect-free and never
+    /// imports the store/error taxonomy.
+    #[error(transparent)]
+    Validation(#[from] crate::validation::ValidationError),
 }
 
 impl From<JsonlError> for LogError {
@@ -157,22 +165,21 @@ impl<S: EventStore> EventLog<S> {
     }
 
     /// Validate the current log against every invariant (hash-chain + parent
-    /// DAG + acyclicity). A thin wrapper over
-    /// [`validate_log`](crate::validate_log) that replays first.
+    /// DAG + acyclicity). Replays first, then delegates the pure checks to
+    /// [`validate_log`](crate::validate_log).
+    ///
+    /// The error union lives on the `use_flow` surface ([`LogError`]) so the
+    /// semantic core ([`validation`](crate::validation)) stays effect-free: a
+    /// store read failure surfaces as [`LogError::Store`], an invariant breach
+    /// as [`LogError::Validation`].
     ///
     /// # Errors
-    /// [`ValidationError::Replay`](crate::ValidationError) on read failure, or
-    /// the first other [`ValidationError`](crate::ValidationError) on an
-    /// invariant breach.
-    pub fn validate(&self) -> Result<(), crate::validation::ValidationError> {
-        let replay = self.replay().map_err(|e| match e {
-            LogError::Store(s) => crate::validation::ValidationError::from(s),
-            LogError::UnknownParent(p) => crate::validation::ValidationError::DanglingParent {
-                id: String::new(),
-                parent_id: p,
-            },
-        })?;
-        validate_log(&replay.records)
+    /// [`LogError::Store`] on read/parse failure, or
+    /// [`LogError::Validation`] on the first invariant breach.
+    pub fn validate(&self) -> Result<(), LogError> {
+        let replay = self.replay()?;
+        validate_log(&replay.records)?;
+        Ok(())
     }
 }
 

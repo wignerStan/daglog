@@ -41,17 +41,23 @@
 //! - [`utils`] — axisless, deterministic atoms (FNV-1a digest, JSONL line
 //!   framing). No business types.
 //! - [`vocabulary`] (`meaning_seed`) — the shared record types: [`EventId`],
-//!   [`vocabulary::Hash`], [`EventRecord`].
+//!   [`vocabulary::Hash`], [`EventRecord`], and their canonical-identity hash
+//!   material.
 //! - [`validation`] (`meaning_core`) — the pure invariants: hash-chain
-//!   verification, parent-DAG dangling-reference + cycle detection.
-//! - [`port`] — the required-capability port [`EventStore`] + [`StoreError`],
-//!   the contract every store adapter implements.
-//! - [`io`] (`run_kit`) — direct-call JSONL read/append atoms + the concrete
-//!   adapter types ([`FileStore`], [`InMemoryStore`]).
-//! - [`pg`] (`run_kit`, `pg` feature) — a `PostgreSQL` JSONB adapter
-//!   ([`PgStore`]); zero-network unless the `pg` feature is enabled.
+//!   verification, parent-DAG dangling-reference + cycle detection. Effect-free:
+//!   it imports nothing from the port or the adapters.
+//! - [`port`] — the local same-axis capability port [`EventStore`] +
+//!   [`StoreError`], the contract adapters implement. (jsonldag is single-axis,
+//!   so this is a local port, not an `axis_link`.)
+//! - [`io`] — `run_kit` JSONL atoms ([`events_file`] etc.) + the
+//!   [`FileStore`] `effect_tool` filesystem adapter + the [`InMemoryStore`]
+//!   `run_kit`/local buffer backend.
+//! - [`pg`] (`effect_tool`, `pg` feature) — a `PostgreSQL` JSONB database
+//!   adapter ([`PgStore`]); zero-network unless the `pg` feature is enabled.
 //! - [`EventLog`] (`use_flow`) — the high-level store: open/append/replay,
-//!   generic over the [`EventStore`] port.
+//!   generic over the [`EventStore`] port. Owns the error union that routes
+//!   store failures ([`LogError::Store`]) vs invariant breaches
+//!   ([`LogError::Validation`]) so `meaning_core` stays effect-free.
 //!
 //! [JSONL]: https://jsonlines.org
 

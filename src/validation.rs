@@ -72,16 +72,6 @@ pub enum ValidationError {
     /// The parent graph contains a cycle (a merge that loops back on itself).
     #[error("parent graph contains a cycle involving `{0}`")]
     ParentCycle(String),
-    /// A read/parse failure while replaying the stream (the log could not be
-    /// read far enough to validate the invariants).
-    #[error(transparent)]
-    Replay(#[from] crate::port::StoreError),
-}
-
-impl From<crate::io::JsonlError> for ValidationError {
-    fn from(e: crate::io::JsonlError) -> Self {
-        Self::Replay(crate::port::StoreError::from(e))
-    }
 }
 
 /// Validate a replayed event stream against every invariant. Records MUST be in

@@ -105,14 +105,15 @@ seams are testable, even though it ships as one library crate:
 |---|---|---|
 | [`utils`] | utils | deterministic atoms: FNV-1a digest, JSONL line framing |
 | [`vocabulary`] | meaning_seed | shared record types: `EventId`, `Hash`, `EventRecord`, `EventBuilder` |
-| [`validation`] | meaning_core | pure invariants: hash-chain, parent-DAG, cycle detection |
-| [`port`] | meaning_core | the required-capability port `EventStore` + `StoreError` |
-| [`io`] | run_kit | direct-call JSONL atoms + concrete adapter types (`FileStore`, `InMemoryStore`) |
-| [`pg`] *(feature)* | run_kit | Postgres JSONB adapter (`PgStore`); zero-network unless the `pg` feature is on |
+| [`validation`] | meaning_core | pure invariants: hash-chain, parent-DAG, cycle detection (effect-free) |
+| [`port`] | local capability port | the `EventStore` trait + `StoreError`; imports no adapter |
+| [`io`] | run_kit + effect_tool | JSONL atoms (run_kit) + `FileStore` filesystem adapter (effect_tool) + `InMemoryStore` buffer backend (run_kit) |
+| [`pg`] *(feature)* | effect_tool | Postgres JSONB database adapter (`PgStore`); zero-network unless `pg` is on |
 | [`log`] | use_flow | the high-level `EventLog<S: EventStore>`: open/append/replay/validate |
 
-The store is a **required-capability port** (`trait EventStore`), not a concrete
-struct: `EventLog` depends on the port, and any adapter (file, in-memory, a test
+The store is a **local same-axis capability port** (`trait EventStore`), not a
+concrete struct: `EventLog` depends on the port, and any adapter (file,
+in-memory, a test
 fake, a remote store) plugs in via `EventLog::new(your_store)`.
 
 [`utils`]: https://docs.rs/jsonldag/latest/jsonldag/utils

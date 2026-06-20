@@ -1,7 +1,19 @@
-//! FCIS `run_kit` — axis-able direct-call JSONL I/O atoms.
+//! JSONL mechanism layer — holds two FCIS bands:
 //!
-//! Vocabulary-free, generic over `T: DeserializeOwned`/`Serialize`. The store
-//! API ([`crate::EventLog`]) calls these; they do not know about DAG semantics.
+//! - **`run_kit`** atoms ([`append_line`], [`read_all`], [`events_file`]):
+//!   vocabulary-free, generic, direct-call JSONL helpers. No capability seam,
+//!   no semantic types. These match the doctrine's run-kit shape (open-input,
+//!   direct-call, no trait dispatch).
+//! - **`effect_tool`** adapter ([`FileStore`]): a concrete **filesystem**
+//!   mechanism adapter that implements the [`EventStore`](crate::EventStore)
+//!   port. The doctrine classifies a filesystem adapter dispatched through a
+//!   capability seam as `effect_tool`, not `run_kit`.
+//! - **`run_kit`**/local adapter ([`InMemoryStore`]): the no-mechanism buffer
+//!   backend (a `Vec`). No external mechanism, so it is not `effect_tool`; it
+//!   is the substitution/test-double backend.
+//!
+//! The atoms and the adapter types share one module because the adapters are
+//! thin wrappers over the atoms; the role split is documented per-item.
 
 use std::path::{Path, PathBuf};
 
@@ -121,11 +133,13 @@ pub fn events_file(store_dir: &Path) -> PathBuf {
     store_dir.join("events.jsonl")
 }
 
-/// A file-backed JSONL store: owns one `events.jsonl` path.
+/// A file-backed JSONB-line store: owns one `events.jsonl` path.
 ///
-/// The [`EventStore`](crate::EventStore) port is implemented for this in the
-/// `port` module — this struct is the `run_kit` mechanism (the path); the port
-/// wiring is a `port` concern.
+/// FCIS `effect_tool`: a concrete **filesystem** mechanism adapter dispatched
+/// through the [`EventStore`](crate::EventStore) port. (A generic open-input
+/// helper with no capability seam would be `run_kit`; because callers reach the
+/// filesystem through the port, this is the effect adapter.) The
+/// `impl EventStore` lives in this module.
 #[derive(Debug, Clone)]
 pub struct FileStore {
     path: PathBuf,
@@ -145,12 +159,14 @@ impl FileStore {
     }
 }
 
-/// An in-memory JSONL store: owns a buffer of records. No persistence.
-/// Implements the [`EventStore`](crate::EventStore) port (in the `use_flow`
-/// module).
+/// An in-memory store: owns a buffer of records. No persistence.
+///
+/// FCIS `run_kit`/local: no external mechanism (a `Vec`), so it is not
+/// `effect_tool`. It is the no-op substitution/test-double backend. The
+/// `impl EventStore` lives in this module.
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryStore {
-    /// The record buffer. `pub(crate)` so the `use_flow`'s `EventStore` impl can
+    /// The record buffer. `pub(crate)` so this module's `EventStore` impl can
     /// read/push without a public mutator surface.
     pub(crate) records: Vec<crate::vocabulary::EventRecord>,
 }
@@ -160,6 +176,37 @@ impl InMemoryStore {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+// Adapter port impls live WITH the adapter (the doctrine's `adapter -> port`
+// direction): each effect_tool/run_kit adapter imports the port and implements
+// it, so the wiring is owned by the mechanism, never by the contract module.
+
+impl crate::port::EventStore for FileStore {
+    fn read_records(&self) -> Result<Vec<crate::vocabulary::EventRecord>, crate::port::StoreError> {
+        Ok(read_all::<crate::vocabulary::EventRecord>(self.path())?)
+    }
+
+    fn append_record(
+        &mut self,
+        record: &crate::vocabulary::EventRecord,
+    ) -> Result<(), crate::port::StoreError> {
+        Ok(append_line(self.path(), record)?)
+    }
+}
+
+impl crate::port::EventStore for InMemoryStore {
+    fn read_records(&self) -> Result<Vec<crate::vocabulary::EventRecord>, crate::port::StoreError> {
+        Ok(self.records.clone())
+    }
+
+    fn append_record(
+        &mut self,
+        record: &crate::vocabulary::EventRecord,
+    ) -> Result<(), crate::port::StoreError> {
+        self.records.push(record.clone());
+        Ok(())
     }
 }
 

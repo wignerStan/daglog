@@ -1,35 +1,33 @@
 //! The required-capability port: the [`EventStore`] trait + [`StoreError`].
 //!
-//! This is the contract the crate revolves around. It is a **root-level**
-//! module (not buried in the `use_flow`) so the layering reads in ownership
-//! order:
+//! This is the local contract the `use_flow` ([`crate::EventLog`]) depends on.
+//! In FCIS terms it is a **same-axis local port**, not an `axis_link`: jsonldag
+//! is a single-axis library, and the doctrine says same-axis capability seams
+//! stay as local traits inside the owner capsule rather than being elevated to
+//! `axis_link(required_port)` (which exists for *cross-axis* plugin seams).
+//!
+//! Ownership direction (the doctrine's required-port rule):
 //!
 //! 1. **port** (here) — the capability contract. Knows only the shared
 //!    `EventRecord` type (from [`crate::vocabulary`]) + [`StoreError`].
-//! 2. **io** (`run_kit`) — concrete adapter *types* (`FileStore`,
-//!    `InMemoryStore`). Owns the mechanism (a path / a buffer).
-//! 3. **port** (here) — the `impl EventStore for FileStore/InMemoryStore`
-//!    blocks, tying the contract to the adapter types. This lives with the
-//!    port, not the adapter, so the contract module is the single place that
-//!    binds "capability" to "concrete mechanism".
-//! 4. **log** (`use_flow`) — `EventLog<S: EventStore>`, a *consumer* of the port.
-//!
-//! A reader sees the trait at the crate root and knows immediately it is the
-//! central contract; adapters implement it; the `use_flow` depends on it; none of
-//! them own it.
+//!    Deliberately imports NO concrete adapter module: a reader can understand
+//!    the contract without loading any backend.
+//! 2. **adapters** ([`crate::io`], [`crate::pg`]) — concrete `effect_tool`
+//!    types (`FileStore`, `InMemoryStore`, `PgStore`). Each adapter owns its
+//!    own `impl EventStore` block, importing the port (`adapter -> port`), so
+//!    the wiring lives with the mechanism, never in the contract module.
 
-use crate::io::{self, FileStore, InMemoryStore};
 use crate::vocabulary::EventRecord;
 
-/// The error an [`EventStore`] implementation can return. Today every concrete
-/// adapter is JSONL-backed, so this wraps [`crate::JsonlError`]; a non-JSONL
-/// adapter carries its own error via the `Other` arm.
+/// The error an [`EventStore`] implementation can return. JSONL-backed
+/// adapters surface [`crate::JsonlError`]; a non-JSONL adapter (e.g. the
+/// `pg` backend) carries its own error via the `Other` arm.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum StoreError {
     /// A JSONL I/O or parse failure.
     #[error(transparent)]
     Jsonl(#[from] crate::JsonlError),
-    /// A backend-specific failure (e.g. a remote store transport error).
+    /// A backend-specific failure (e.g. a Postgres transport error).
     #[error("{0}")]
     Other(String),
 }
@@ -38,7 +36,7 @@ pub enum StoreError {
 ///
 /// The `use_flow` ([`crate::EventLog`]) depends on this trait, never on a
 /// concrete backend. Implementations own the persistence mechanism (a file, a
-/// buffer, a remote store) and must keep `read_records` + `append_record`
+/// buffer, a database) and must keep `read_records` + `append_record`
 /// consistent: a record appended by `append_record` must appear in the next
 /// `read_records`.
 pub trait EventStore {
@@ -55,50 +53,4 @@ pub trait EventStore {
     /// # Errors
     /// See the implementor.
     fn append_record(&mut self, record: &EventRecord) -> Result<(), StoreError>;
-}
-
-// Adapter impls live with the port (the contract module binds capability to
-// concrete mechanism). The adapter *types* come from run_kit (`io`); the port
-// owns the `impl` so the wiring is in one place.
-
-impl EventStore for FileStore {
-    fn read_records(&self) -> Result<Vec<EventRecord>, StoreError> {
-        Ok(io::read_all::<EventRecord>(self.path())?)
-    }
-
-    fn append_record(&mut self, record: &EventRecord) -> Result<(), StoreError> {
-        Ok(io::append_line(self.path(), record)?)
-    }
-}
-
-impl EventStore for InMemoryStore {
-    fn read_records(&self) -> Result<Vec<EventRecord>, StoreError> {
-        Ok(self.records.clone())
-    }
-
-    fn append_record(&mut self, record: &EventRecord) -> Result<(), StoreError> {
-        self.records.push(record.clone());
-        Ok(())
-    }
-}
-
-// `pg` backend: the PgStore adapter (run_kit) implements the same port. Gated
-// behind the `pg` feature so the crate stays zero-network by default. PgStore's
-// own errors map to StoreError::Other (the non-JSONL backend arm).
-#[cfg(feature = "pg")]
-impl EventStore for crate::pg::PgStore {
-    fn read_records(&self) -> Result<Vec<EventRecord>, StoreError> {
-        Ok(Self::read_records(self)?)
-    }
-
-    fn append_record(&mut self, record: &EventRecord) -> Result<(), StoreError> {
-        Ok(Self::append_record(self, record)?)
-    }
-}
-
-#[cfg(feature = "pg")]
-impl From<crate::pg::PgStoreError> for StoreError {
-    fn from(e: crate::pg::PgStoreError) -> Self {
-        Self::Other(e.to_string())
-    }
 }

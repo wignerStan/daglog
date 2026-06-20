@@ -1,8 +1,11 @@
-//! FCIS `run_kit` (pg backend) — a `PostgreSQL` JSONB store adapter.
+//! FCIS `effect_tool` (pg backend) — a `PostgreSQL` JSONB store adapter.
 //!
-//! `PgStore` is the concrete adapter for the [`EventStore`](crate::EventStore)
-//! port when the log lives in Postgres. Each [`EventRecord`](crate::EventRecord)
-//! is one row:
+//! `PgStore` is the concrete **database** mechanism adapter for the
+//! [`EventStore`](crate::EventStore) port when the log lives in Postgres. The
+//! doctrine classifies a database adapter dispatched through a capability seam
+//! as `effect_tool` (it wraps a concrete external mechanism, leaks backend
+//! choice + failure taxonomy, and the caller reaches it through the port). Each
+//! [`EventRecord`](crate::EventRecord) is one row:
 //!
 //! ```sql
 //! CREATE TABLE events (
@@ -19,7 +22,8 @@
 //!
 //! This module is gated behind the `pg` feature; the crate is zero-network
 //! unless a caller opts in. The [`EventStore`](crate::EventStore) impl for
-//! [`PgStore`] lives in [`crate::port`] with the other adapter impls.
+//! [`PgStore`] lives in this module (with the adapter, per the `adapter -> port`
+//! direction).
 //!
 //! # Async runtime
 //!
@@ -35,8 +39,9 @@ use crate::vocabulary::EventRecord;
 
 /// A `PostgreSQL` JSONB store adapter.
 ///
-/// Owns the connection options + table name; the [`EventStore`](crate::EventStore)
-/// impl (in [`crate::port`]) reads / appends rows.
+/// Owns the connection options + table name. The
+/// [`EventStore`](crate::EventStore) impl lives in this module (with the
+/// adapter); it reads / appends rows.
 ///
 /// Build with [`PgStore::new`] (parsed URL) or [`PgStore::with_options`]. The
 /// table must exist and have the shape documented at the top of this module —
@@ -191,6 +196,25 @@ pub enum PgStoreError {
 impl From<sqlx::Error> for PgStoreError {
     fn from(e: sqlx::Error) -> Self {
         Self::Query(e.to_string())
+    }
+}
+
+// Adapter port impl — lives WITH the adapter (the doctrine's `adapter -> port`
+// direction). The `pg` effect_tool imports the port and implements it; the
+// wiring is owned by the mechanism, not by the contract module.
+impl crate::port::EventStore for PgStore {
+    fn read_records(&self) -> Result<Vec<EventRecord>, crate::port::StoreError> {
+        Ok(Self::read_records(self)?)
+    }
+
+    fn append_record(&mut self, record: &EventRecord) -> Result<(), crate::port::StoreError> {
+        Ok(Self::append_record(self, record)?)
+    }
+}
+
+impl From<PgStoreError> for crate::port::StoreError {
+    fn from(e: PgStoreError) -> Self {
+        Self::Other(e.to_string())
     }
 }
 
